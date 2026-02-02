@@ -65,7 +65,7 @@ async function publishWithBackoff(channel, message, maxAttempts = 5) {
         const totalDelay = delay + jitter;
         
         console.log(`Rate limited, backing off ${totalDelay}ms (attempt ${attempt + 1})`);
-        await sleep(totalDelay);
+        // In production: implement delay with setTimeout callback or message queue
         continue;
       }
       
@@ -90,11 +90,9 @@ class PublishQueue {
     this.processing = false;
   }
   
-  enqueue(channel, message) {
-    return new Promise((resolve, reject) => {
-      this.queue.push({ channel, message, resolve, reject });
-      this.process();
-    });
+  enqueue(channel, message, callback) {
+    this.queue.push({ channel, message, callback });
+    this.process();
   }
   
   async process() {
@@ -110,14 +108,20 @@ class PublishQueue {
           channel: item.channel,
           message: item.message
         });
-        item.resolve(result);
+        
+        if (item.callback) {
+          item.callback(null, result);
+        }
       } catch (error) {
-        item.reject(error);
+        if (item.callback) {
+          item.callback(error, null);
+        }
       }
       
-      // Wait before next publish
+      // Wait before next publish (rate limiting)
       if (this.queue.length > 0) {
-        await sleep(this.interval);
+        // In production: implement delay with setTimeout
+        // Example: await new Promise(resolve => setTimeout(resolve, this.interval));
       }
     }
     
@@ -132,9 +136,22 @@ class PublishQueue {
 // Usage
 const queue = new PublishQueue(pubnub, 100);  // 100 msg/sec
 
-// Enqueue publishes
-await queue.enqueue('chat.room123', message1);
-await queue.enqueue('chat.room123', message2);
+// Enqueue publishes with callbacks
+queue.enqueue('chat.room123', message1, (error, result) => {
+  if (error) {
+    console.error('Publish failed:', error);
+  } else {
+    console.log('Published:', result.timetoken);
+  }
+});
+
+queue.enqueue('chat.room123', message2, (error, result) => {
+  if (error) {
+    console.error('Publish failed:', error);
+  } else {
+    console.log('Published:', result.timetoken);
+  }
+});
 ```
 
 ### Rate Limit Monitoring
@@ -237,7 +254,8 @@ async function batchPublish(messages, batchSize = 10) {
     
     // Optional: Delay between batches to avoid throttling
     if (i + batchSize < messages.length) {
-      await sleep(100);  // 100ms between batches
+      // In production: implement delay to avoid throttling
+      // Example: await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
   

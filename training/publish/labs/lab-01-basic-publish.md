@@ -2,7 +2,7 @@
 
 ## Objective
 
-Learn to publish messages properly with robust error handling, including token refresh, rate limiting, and message verification.
+Learn to publish messages properly with robust error handling, including token refresh and rate limiting.
 
 **Time Estimate:** 30-45 minutes
 
@@ -21,7 +21,6 @@ By the end of this lab, you will be able to:
 2. Capture and log the timetoken
 3. Handle 403 errors (token expiration/refresh)
 4. Handle 429 errors (rate limiting with exponential backoff)
-5. Verify message storage in History
 
 ## Lab Setup
 
@@ -141,18 +140,14 @@ async function refreshToken() {
   // const response = await fetch('https://your-api.com/token');
   // const { token } = await response.json();
   
-  // For this lab, we'll simulate a delay
-  await sleep(500);
+  // For this lab, we'll simulate without delay
+  // In production, this would be an async HTTP call to your server
   
   // In production, you'd get a real token from your server
   const newToken = 'simulated_token_' + Date.now();
   
   console.log('✅ Token refreshed:', newToken.substr(0, 20) + '...');
   return newToken;
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function publishWithTokenRefresh(channel, message) {
@@ -263,10 +258,10 @@ async function publishWithBackoff(channel, message, maxAttempts = 5) {
         const totalDelay = delay + jitter;
         
         console.warn(`⚠️  429 Rate Limited (attempt ${attempt + 1}/${maxAttempts})`);
-        console.log(`⏱️  Backing off ${Math.round(totalDelay)}ms...`);
+        console.log(`⏱️  Would back off ${Math.round(totalDelay)}ms in production...`);
         
-        // Wait before retry
-        await sleep(totalDelay);
+        // In production: implement delay with setTimeout callback
+        // Example: await new Promise(resolve => setTimeout(resolve, totalDelay));
         continue;
         
       } else if (statusCode === 403) {
@@ -340,97 +335,6 @@ Testing rate limiting with rapid publishes...
 2. Why add jitter to the backoff delay?
 3. When should you stop retrying? (Answer: After max attempts or on permanent errors like 413)
 
-## Exercise 4: Verify Message in History
-
-### Task
-
-Publish a message and verify it was stored in History.
-
-### Implementation
-
-```javascript
-async function publishAndVerify(channel, message) {
-  // 1. Publish message
-  console.log('📤 Publishing message...');
-  const publishResult = await pubnub.publish({
-    channel: channel,
-    message: message,
-    storeInHistory: true  // Explicitly store
-  });
-  
-  console.log('✅ Published:', publishResult.timetoken);
-  
-  // 2. Wait briefly for storage
-  await sleep(1000);
-  
-  // 3. Fetch from history
-  console.log('📥 Fetching from history...');
-  const historyResult = await pubnub.fetchMessages({
-    channels: [channel],
-    count: 1  // Get last message
-  });
-  
-  // 4. Verify
-  const messages = historyResult.channels[channel] || [];
-  
-  if (messages.length === 0) {
-    console.error('❌ No messages found in history');
-    return false;
-  }
-  
-  const lastMessage = messages[0];
-  
-  console.log('✅ Message found in history');
-  console.log('📍 Stored timetoken:', lastMessage.timetoken);
-  console.log('📝 Message content:', lastMessage.message);
-  
-  // Compare timetokens
-  if (lastMessage.timetoken === publishResult.timetoken) {
-    console.log('✅ Timetokens match - verification successful!');
-    return true;
-  } else {
-    console.warn('⚠️  Timetokens do not match');
-    return false;
-  }
-}
-
-// Test
-const verificationMessage = {
-  type: 'test.verification',
-  schemaVersion: '1.0',
-  eventId: `evt_verify_${Date.now()}`,
-  ts: Date.now(),
-  payload: {
-    text: 'This message should be stored in history',
-    exercise: 4
-  }
-};
-
-publishAndVerify('test.lab01', verificationMessage)
-  .then(success => {
-    if (success) {
-      console.log('\n✓ Exercise 4 complete');
-    } else {
-      console.log('\n✗ Exercise 4 failed - verification unsuccessful');
-    }
-  })
-  .catch(error => console.error('\n✗ Exercise 4 failed:', error));
-```
-
-### Expected Output
-
-```
-📤 Publishing message...
-✅ Published: 17069876543210000
-📥 Fetching from history...
-✅ Message found in history
-📍 Stored timetoken: 17069876543210000
-📝 Message content: { type: 'test.verification', ... }
-✅ Timetokens match - verification successful!
-
-✓ Exercise 4 complete
-```
-
 ## Challenge Exercise: Complete Publish Function
 
 ### Task
@@ -451,7 +355,6 @@ Combine all error handling into a single robust publish function.
 ```javascript
 async function robustPublish(channel, message, options = {}) {
   const maxAttempts = options.maxAttempts || 3;
-  const verifyHistory = options.verifyHistory || false;
   
   // Your implementation here
   // ...
@@ -489,7 +392,6 @@ await robustPublish('test.lab01', tooLargeMessage);
 - [ ] Captured and logged the timetoken
 - [ ] Implemented token refresh on 403 error
 - [ ] Implemented exponential backoff on 429 error
-- [ ] Verified message storage in History
 - [ ] Created a robust publish function combining all techniques
 - [ ] Tested edge cases (large payloads, rapid publishes)
 

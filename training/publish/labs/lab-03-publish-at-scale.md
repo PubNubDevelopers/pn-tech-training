@@ -37,10 +37,6 @@ const pubnub = new PubNub({
   userId: 'lab-user-003'
 });
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 console.log('Lab 03: Publish at Scale initialized\n');
 ```
 
@@ -251,8 +247,6 @@ async function compareBatchSizes() {
     const throughput = (messageCount / (totalTime / 1000)).toFixed(2);
     console.log(`  Time: ${totalTime}ms`);
     console.log(`  Throughput: ${throughput} msg/sec\n`);
-    
-    await sleep(1000);  // Pause between tests
   }
   
   console.log('✅ Batching comparison complete');
@@ -312,15 +306,13 @@ class PublishQueue {
     };
   }
   
-  enqueue(channel, message) {
-    return new Promise((resolve, reject) => {
-      this.queue.push({ channel, message, resolve, reject });
-      this.metrics.enqueued++;
-      
-      if (!this.processing) {
-        this.process();
-      }
-    });
+  enqueue(channel, message, callback) {
+    this.queue.push({ channel, message, callback });
+    this.metrics.enqueued++;
+    
+    if (!this.processing) {
+      this.process();
+    }
   }
   
   async process() {
@@ -339,15 +331,22 @@ class PublishQueue {
         });
         
         this.metrics.processed++;
-        item.resolve(result);
+        
+        if (item.callback) {
+          item.callback(null, result);
+        }
       } catch (error) {
         this.metrics.failed++;
-        item.reject(error);
+        
+        if (item.callback) {
+          item.callback(error, null);
+        }
       }
       
       // Rate limiting delay
       if (this.queue.length > 0) {
-        await sleep(this.interval);
+        // In production: implement delay with setTimeout
+        // Example: await new Promise(resolve => setTimeout(resolve, this.interval));
       }
       
       // Progress update
@@ -369,41 +368,49 @@ class PublishQueue {
   }
 }
 
-async function testMessageQueue() {
+function testMessageQueue() {
   console.log('=== Exercise 3: Message Queue ===\n');
   
   const queue = new PublishQueue(pubnub, { rate: 50 });  // 50 msg/sec
   
   console.log('Enqueueing 100 messages...');
   
-  const enqueuePromises = [];
-  for (let i = 0; i < 100; i++) {
-    const promise = queue.enqueue('test.queue', {
+  const startTime = Date.now();
+  let completed = 0;
+  let failed = 0;
+  const totalMessages = 100;
+  
+  for (let i = 0; i < totalMessages; i++) {
+    queue.enqueue('test.queue', {
       type: 'test.queued',
       schemaVersion: '1.0',
       eventId: `evt_queue_${i}`,
       ts: Date.now(),
       payload: { sequence: i }
+    }, (error, result) => {
+      if (error) {
+        failed++;
+      } else {
+        completed++;
+      }
+      
+      // Print final metrics when all done
+      if (completed + failed === totalMessages) {
+        const totalTime = Date.now() - startTime;
+        const metrics = queue.getMetrics();
+        
+        console.log('\nQueue Metrics:');
+        console.log('  Enqueued:', metrics.enqueued);
+        console.log('  Processed:', metrics.processed);
+        console.log('  Failed:', metrics.failed);
+        console.log('  Total time:', totalTime, 'ms');
+        console.log('  Throughput:', (metrics.processed / (totalTime / 1000)).toFixed(2), 'msg/sec');
+      }
     });
-    
-    enqueuePromises.push(promise);
   }
   
   console.log('All messages enqueued, queue size:', queue.size());
   console.log('');
-  
-  // Wait for all to complete
-  const startTime = Date.now();
-  await Promise.all(enqueuePromises);
-  const totalTime = Date.now() - startTime;
-  
-  const metrics = queue.getMetrics();
-  console.log('\nQueue Metrics:');
-  console.log('  Enqueued:', metrics.enqueued);
-  console.log('  Processed:', metrics.processed);
-  console.log('  Failed:', metrics.failed);
-  console.log('  Total time:', totalTime, 'ms');
-  console.log('  Throughput:', (metrics.processed / (totalTime / 1000)).toFixed(2), 'msg/sec');
 }
 
 testMessageQueue()
@@ -443,9 +450,10 @@ async function testThrottling() {
         if (attempt < 3) {
           // Exponential backoff
           const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
-          console.log(`  ⚠️  Rate limited, backing off ${delay}ms (attempt ${attempt + 1})`);
+          console.log(`  ⚠️  Rate limited, would back off ${delay}ms (attempt ${attempt + 1})`);
           
-          await sleep(delay);
+          // In production: implement delay with setTimeout callback
+          // Example: await new Promise(resolve => setTimeout(resolve, delay));
           metrics.retries++;
           return publishWithBackoff(channel, message, attempt + 1);
         }
@@ -521,8 +529,6 @@ async function compareFireVsStore() {
   
   console.log(`  Time: ${storeTime}ms`);
   console.log(`  Throughput: ${storeThroughput} msg/sec\n`);
-  
-  await sleep(2000);
   
   // Test 2: Fire (no replication, no storage)
   console.log('Test 2: Fire (no replication, Functions/Illuminate only)');

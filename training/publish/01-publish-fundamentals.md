@@ -628,14 +628,14 @@ async function publishWithRetry(channel, message, maxRetries = 3) {
         // Exponential backoff for rate limiting
         const backoffMs = Math.min(1000 * Math.pow(2, attempt), 30000);
         console.warn(`Rate limited, backing off ${backoffMs}ms`);
-        await sleep(backoffMs);
+        // In production: implement delay with setTimeout callback or message queue
         continue;
         
       } else if (statusCode >= 500) {
         // Server error - retry with backoff
         const backoffMs = Math.min(500 * Math.pow(2, attempt), 10000);
         console.warn(`Server error, retrying in ${backoffMs}ms`);
-        await sleep(backoffMs);
+        // In production: implement delay with setTimeout callback or message queue
         continue;
         
       } else {
@@ -648,11 +648,9 @@ async function publishWithRetry(channel, message, maxRetries = 3) {
   
   throw new Error(`Failed to publish after ${maxRetries} attempts`);
 }
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 ```
+
+**Note:** The delay implementation is omitted for simplicity. In production, implement delays using setTimeout with callbacks or a message queue to avoid blocking.
 
 ### Error Handling Best Practices
 
@@ -682,16 +680,19 @@ async function exponentialBackoff(fn, maxAttempts = 5) {
         throw error;
       }
       
-      // Calculate backoff
+      // Calculate backoff delay
       const baseDelay = 1000;  // 1 second
       const maxDelay = 30000;   // 30 seconds
       const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
       
       // Add jitter to prevent thundering herd
       const jitter = Math.random() * 200;
+      const totalDelay = delay + jitter;
       
-      console.log(`Attempt ${attempt + 1} failed, retrying in ${delay + jitter}ms`);
-      await sleep(delay + jitter);
+      console.log(`Attempt ${attempt + 1} failed, would retry in ${totalDelay}ms`);
+      
+      // In production: implement delay with setTimeout callback or message queue
+      // Example: await new Promise(resolve => setTimeout(resolve, totalDelay));
     }
   }
   
@@ -703,6 +704,8 @@ await exponentialBackoff(() =>
   pubnub.publish({ channel: 'chat.room123', message: data })
 );
 ```
+
+**Note:** Actual delay implementation is shown in comments. For production systems, use a message queue or event-driven architecture to handle retries without blocking.
 
 ## Performance Considerations
 

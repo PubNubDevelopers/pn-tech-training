@@ -36,10 +36,6 @@ const pubnub = new PubNub({
   userId: 'lab-user-002'
 });
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 console.log('Lab 02: Message Patterns initialized\n');
 ```
 
@@ -231,15 +227,11 @@ async function testSchemaVersioning() {
   await pubnub.publish({ channel, message: v1 });
   handleProfileUpdate(v1);
   
-  await sleep(500);
-  
   // Publish v1.1
   const v1_1 = createProfileV1_1('user456', 'Bob', 'https://example.com/bob.jpg');
   console.log('\nPublishing v1.1...');
   await pubnub.publish({ channel, message: v1_1 });
   handleProfileUpdate(v1_1);
-  
-  await sleep(500);
   
   // Publish v2.0
   const v2 = createProfileV2('user789', 'Charlie', 'Software engineer from NYC');
