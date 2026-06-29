@@ -83,8 +83,8 @@ Before starting this module, you should have:
 | Limit | Value | Notes |
 |-------|-------|-------|
 | **Max payload** | 32 KiB | Hard limit including overhead |
-| **Recommended max** | 30 KiB | Leave room for headers |
-| **Optimal size** | <5 KiB | Best latency/throughput balance |
+| **Recommended max** | <30 KiB | Leave practical headroom for encoding and channel overhead |
+| **Optimal size** | ~1.8 KB or smaller | Best latency/throughput characteristics |
 | **Signal max** | 64 bytes | For high-frequency, small data |
 | **Channel name max** | 2,048 characters | Including separators |
 | **UUID max** | 92 characters | User identifier |

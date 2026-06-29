@@ -14,7 +14,7 @@ This document covers the essential concepts every Solution Architect needs to kn
 
 | Characteristic | Description |
 |----------------|-------------|
-| **Real-time delivery** | Messages delivered to subscribers in <30ms globally |
+| **Real-time delivery** | Low-latency delivery through PubNub's global edge network |
 | **Fanout** | Single publish reaches all channel subscribers simultaneously |
 | **Ephemeral by default** | Messages are not stored unless explicitly configured |
 | **Global replication** | Messages replicated across all Points of Presence |
@@ -70,7 +70,7 @@ console.log('Published at timetoken:', result.timetoken);
 | `message` | Yes | any | Message payload (serialized to JSON) |
 | `storeInHistory` | No | boolean | Store in History (default: true if enabled) |
 | `meta` | No | object | Metadata for filtering (not stored) |
-| `ttl` | No | number | Per-message retention in minutes |
+| `ttl` | No | number | Per-message retention in hours |
 
 ### REST API Reference
 
@@ -111,7 +111,7 @@ https://ps.pndsn.com/publish/{pub_key}/{sub_key}/{signature}/{channel}/{callback
 | `uuid` | **Yes** | string | N/A | Client identifier (max 92 characters) |
 | `auth` | Conditional | string | none | Access Manager token (required if Access Manager enabled) |
 | `store` | No | `0` or `1` | keyset default | `0` = don't store, `1` = store in History |
-| `ttl` | No | number | keyset default | Message retention in minutes (e.g., `60` for 1 hour) |
+| `ttl` | No | number | keyset default | Message retention in hours (e.g., `24` for 24 hours). `ttl=0` stores with no message-level expiry; omit `ttl` to use keyset default. |
 | `meta` | No | string | none | URL-encoded JSON metadata for filtering |
 | `norep` | No | `true` | false | Fire mode: no replication, Functions/Illuminate only |
 | `seqn` | No | number | none | Sequence number for message ordering |
@@ -176,9 +176,9 @@ https://ps.pndsn.com/publish/pub-c-abc123/sub-c-xyz789/0/analytics.events/0/%7B%
 **Example 4: With Storage and TTL Override**
 
 ```
-https://ps.pndsn.com/publish/pub-c-abc123/sub-c-xyz789/0/chat.room123/0/%7B%22text%22%3A%22Hello%22%7D?uuid=user123&store=1&ttl=1440
-                                                                                                                     |_____| |________|
-                                                                                                                     store   1440 min (24h)
+https://ps.pndsn.com/publish/pub-c-abc123/sub-c-xyz789/0/chat.room123/0/%7B%22text%22%3A%22Hello%22%7D?uuid=user123&store=1&ttl=24
+                                                                                                                     |_____| |_______|
+                                                                                                                     store   24h
 ```
 
 **Use case**: Ensure message is stored for 24 hours regardless of keyset default.
@@ -267,7 +267,7 @@ curl "https://ps.pndsn.com/publish/pub-c-xxx/sub-c-xxx/0/analytics.events/0/%7B%
 
 **With Storage and TTL**
 ```bash
-curl "https://ps.pndsn.com/publish/pub-c-xxx/sub-c-xxx/0/chat.room123/0/%7B%22text%22%3A%22Hello%22%7D?uuid=user123&store=1&ttl=60"
+curl "https://ps.pndsn.com/publish/pub-c-xxx/sub-c-xxx/0/chat.room123/0/%7B%22text%22%3A%22Hello%22%7D?uuid=user123&store=1&ttl=24"
 ```
 
 **With Metadata**
@@ -433,9 +433,11 @@ Understanding HTTP status codes is critical for proper error handling.
 
 | Limit | Value | Notes |
 |-------|-------|-------|
-| **Maximum payload** | 32 KiB (32,768 bytes) | Hard limit, HTTP 413 if exceeded | 2MB limit (coming soon)
-| **Recommended maximum** | 25 KiB | Leave room for headers and encoding |
-| **Optimal size** | <2 KiB | Best balance of latency and throughput  and costs (1 transaction) |
+| **Maximum payload** | 32 KiB (32,768 bytes) | Hard limit, HTTP 413 if exceeded |
+| **Recommended maximum** | <30 KiB | Leaves practical headroom for encoding and channel overhead |
+| **Optimal size** | ~1.8 KB or smaller | Best latency and throughput characteristics |
+
+PubNub is optimized for payloads up to 32 KiB. Larger limits may be available for specific use cases via PubNub support.
 
 ### How Size is Calculated
 
@@ -472,7 +474,7 @@ console.log('Channel:', channelName.length, 'bytes');  // 13 bytes
 
 ### Exceeding Size Limits
 
-If your data exceeds 25 KiB:
+If your data exceeds 30 KiB:
 
 **Option 1: Reference Large Data**
 ```javascript
@@ -713,15 +715,15 @@ await exponentialBackoff(() =>
 
 | Scenario | Typical Latency |
 |----------|-----------------|
-| **Store (default)** | 20-50ms |
-| **Fire (norep)** | 10-20ms |
-| **With encryption** | +5-10ms |
-| **Large payloads (>10KB)** | +10-50ms |
-| **Cross-region** | +50-150ms (replication) |
+| **Store (default)** | Low latency; depends on region and network conditions |
+| **Fire (norep)** | Typically lower than Store because replication is skipped |
+| **With encryption** | Slightly higher due to encrypt/decrypt overhead |
+| **Large payloads (>10KB)** | Higher latency than small payloads |
+| **Cross-region** | Higher than same-region delivery due to replication distance |
 
 ### Optimization Tips
 
-1. **Keep payloads small** - <5 KiB for optimal performance
+1. **Keep payloads small** - Target ~1.8 KB when possible; keep under 30 KiB
 2. **Use Fire for analytics** - No replication overhead
 3. **Batch when possible** - Queue messages and publish in bursts
 4. **Avoid synchronous publish** - Use async/promises

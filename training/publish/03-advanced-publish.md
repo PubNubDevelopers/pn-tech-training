@@ -222,16 +222,15 @@ PubNub SDKs automatically manage connection pooling:
 ### Optimizing for High Throughput
 
 ```javascript
-// ✅ GOOD: Parallel publishes (SDK handles pooling)
-const publishPromises = messages.map(msg => 
+// ✅ GOOD: Parallel publishes across different channels
+const publishPromises = messages.map(msg =>
   pubnub.publish({ channel: msg.channel, message: msg.data })
 );
-
 const results = await Promise.all(publishPromises);
 
-// ❌ BAD: Sequential publishes (slower)
-for (const msg of messages) {
-  await pubnub.publish({ channel: msg.channel, message: msg.data });
+// ✅ ALSO GOOD: Serialize per channel when order matters
+for (const msg of roomMessages) {
+  await pubnub.publish({ channel: 'chat.room123', message: msg });
 }
 ```
 
@@ -319,10 +318,11 @@ await pubnub.publish({
 ### Subscriber-Side Filtering
 
 ```javascript
-// Subscribe with filter expression
+// Configure filter expression (set at init or dynamically)
+pubnub.setFilterExpression("meta.priority == 'high' && meta.region == 'us-west'");
+
 pubnub.subscribe({
-  channels: ['events.room123'],
-  filterExpression: "meta.priority == 'high' && meta.region == 'us-west'"
+  channels: ['events.room123']
 });
 
 // Only receives messages matching filter
@@ -341,8 +341,8 @@ pubnub.addListener({
 TTL controls how long a message is retained in Message Persistence, overriding the keyset default.
 
 **TTL Parameter**:
-- **Unit**: Minutes
-- **Value**: `0` to unlimited (integer or float)
+- **Unit**: Hours
+- **Value**: Integer or float
 - **Only applies if**: `storeInHistory: true`
 
 ### TTL Examples
@@ -353,7 +353,7 @@ await pubnub.publish({
   channel: 'alerts.user123',
   message: { text: 'Session expiring soon' },
   storeInHistory: true,
-  ttl: 60  // 60 minutes = 1 hour
+  ttl: 1  // 1 hour
 });
 
 // Medium-lived message (24 hours)
@@ -361,15 +361,23 @@ await pubnub.publish({
   channel: 'chat.room123',
   message: { text: 'Hello!' },
   storeInHistory: true,
-  ttl: 1440  // 1440 minutes = 24 hours
+  ttl: 24  // 24 hours
+});
+
+// Message-level unlimited retention
+await pubnub.publish({
+  channel: 'chat.room123',
+  message: { text: 'Persisted' },
+  storeInHistory: true,
+  ttl: 0  // 0 = no message-level expiry
 });
 
 // Use keyset default retention
 await pubnub.publish({
   channel: 'chat.room123',
-  message: { text: 'Persisted' },
-  storeInHistory: true,
-  ttl: 0  // 0 = use keyset default
+  message: { text: 'Keyset default retention' },
+  storeInHistory: true
+  // Omit ttl to use keyset default
 });
 
 // Ephemeral (not stored)
@@ -386,10 +394,10 @@ await pubnub.publish({
 | Use Case | TTL | Rationale |
 |----------|-----|-----------|
 | **Typing indicators** | N/A (don't store) | Ephemeral only |
-| **Session alerts** | 60 min | Valid for session |
+| **Session alerts** | 1 hour | Valid for session |
 | **Chat messages** | 24-168 hours | Recent history |
 | **Audit logs** | Unlimited | Compliance |
-| **Temporary codes** | 5-15 min | Security (2FA, OTP) |
+| **Temporary codes** | 1 hour | Security-sensitive, short-lived |
 
 ## Signals vs Messages
 
@@ -593,7 +601,7 @@ flowchart LR
 | **Publish (store: false)** | 1 transaction | No (included) |
 | **Fire (norep: true)** | 1 transaction | N/A (no replication) |
 | **Signal** | 1 transaction (lower rate) | No (included) |
-| **Publish to N channels** | N transactions | No |
+| **Publish to N channels (N separate publish calls)** | N transactions | No |
 
 ### Billing Optimization
 
@@ -666,15 +674,15 @@ function sendMessages() {
 ### 3. Batch Multiple Publishes
 
 ```javascript
-// ✅ GOOD: Parallel batch
+// ✅ GOOD: Parallel batch across multiple channels
 const promises = messages.map(msg => 
   pubnub.publish({ channel: msg.channel, message: msg.data })
 );
 await Promise.all(promises);
 
-// ❌ BAD: Sequential
-for (const msg of messages) {
-  await pubnub.publish({ channel: msg.channel, message: msg.data });
+// ✅ GOOD: Sequential publish on one channel to preserve order
+for (const msg of singleChannelMessages) {
+  await pubnub.publish({ channel: 'chat.room123', message: msg });
 }
 ```
 

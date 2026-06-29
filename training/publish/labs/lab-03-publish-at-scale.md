@@ -197,24 +197,36 @@ Message Size (bytes):
 
 ### Task
 
-Implement batching to improve throughput with parallel publishes.
+Implement batching to improve throughput while preserving ordering on each channel.
 
 ### Implementation
 
 ```javascript
 async function batchPublish(messages, batchSize = 10) {
   const results = [];
-  
-  for (let i = 0; i < messages.length; i += batchSize) {
-    const batch = messages.slice(i, i + batchSize);
-    
-    // Publish batch in parallel
-    const batchResults = await Promise.all(
-      batch.map(msg => pubnub.publish({ channel: msg.channel, message: msg.data }))
-    );
-    
-    results.push(...batchResults);
+  const groupedByChannel = new Map();
+
+  // Keep message order within each channel.
+  for (const msg of messages) {
+    if (!groupedByChannel.has(msg.channel)) {
+      groupedByChannel.set(msg.channel, []);
+    }
+    groupedByChannel.get(msg.channel).push(msg);
   }
+  
+  // Process channels in parallel, but publish serially per channel.
+  await Promise.all(
+    Array.from(groupedByChannel.entries()).map(async ([channel, channelMessages]) => {
+      for (let i = 0; i < channelMessages.length; i += batchSize) {
+        const batch = channelMessages.slice(i, i + batchSize);
+
+        for (const msg of batch) {
+          const result = await pubnub.publish({ channel, message: msg.data });
+          results.push(result);
+        }
+      }
+    })
+  );
   
   return results;
 }
@@ -224,7 +236,7 @@ async function compareBatchSizes() {
   
   const messageCount = 100;
   const testMessages = Array.from({ length: messageCount }, (_, i) => ({
-    channel: 'test.batch',
+    channel: `test.batch-${i % 5}`,  // Spread across 5 channels
     data: {
       type: 'test.batch',
       schemaVersion: '1.0',
@@ -762,7 +774,7 @@ Record your findings:
 
 ## Key Takeaways
 
-1. **Batching**: Parallel publishes significantly improve throughput
+1. **Batching**: Parallelize across channels, serialize within each channel
 2. **Queueing**: Control rate to avoid throttling
 3. **Fire**: Use for analytics/Functions only (no subscribers needed)
 4. **Sharding**: Distribute load across channels for scalability

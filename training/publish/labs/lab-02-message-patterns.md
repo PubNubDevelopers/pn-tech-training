@@ -425,6 +425,7 @@ Design a Before Publish Function to validate messages (conceptual - actual deplo
 ```javascript
 // Conceptual Function: message-validator
 // Trigger: Before Publish on vote-submit.*
+const kvstore = require('kvstore');
 
 export default (request) => {
   const message = request.message;

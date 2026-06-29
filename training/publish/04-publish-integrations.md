@@ -49,7 +49,7 @@ await pubnub.publish({
   channel: 'session.alerts',
   message: { text: 'Session expiring' },
   storeInHistory: true,
-  ttl: 60  // 60 minutes
+  ttl: 1  // 1 hour
 });
 
 // Medium-lived: 24 hours
@@ -57,7 +57,7 @@ await pubnub.publish({
   channel: 'chat.room123',
   message: { text: 'Hello!' },
   storeInHistory: true,
-  ttl: 1440  // 1440 minutes = 24 hours
+  ttl: 24  // 24 hours
 });
 
 // Long-lived: 7 days
@@ -65,15 +65,23 @@ await pubnub.publish({
   channel: 'notifications.user123',
   message: { text: 'Important notice' },
   storeInHistory: true,
-  ttl: 10080  // 10080 minutes = 7 days
+  ttl: 168  // 168 hours = 7 days
 });
 
-// Use keyset default
+// Message-level unlimited retention
+await pubnub.publish({
+  channel: 'chat.room123',
+  message: { text: 'No message-level expiry' },
+  storeInHistory: true,
+  ttl: 0  // 0 = no message-level expiry
+});
+
+// Use keyset default retention
 await pubnub.publish({
   channel: 'chat.room123',
   message: { text: 'Default retention' },
-  storeInHistory: true,
-  ttl: 0  // 0 = use keyset default
+  storeInHistory: true
+  // Omit ttl to use keyset default
 });
 ```
 
@@ -219,26 +227,40 @@ Devices must register with PubNub to receive push notifications:
 await pubnub.push.addChannels({
   channels: ['inbox.user123', 'chat.room456'],
   device: deviceToken,  // From APNs/FCM
-  pushGateway: 'apns'   // or 'gcm'
+  pushGateway: 'apns2',
+  environment: 'production',
+  topic: 'com.example.bundle_id'
+});
+
+await pubnub.push.addChannels({
+  channels: ['inbox.user123', 'chat.room456'],
+  device: deviceToken,
+  pushGateway: 'fcm'
 });
 
 // List channels registered for push
 const channels = await pubnub.push.listChannels({
   device: deviceToken,
-  pushGateway: 'apns'
+  pushGateway: 'apns2',
+  environment: 'production',
+  topic: 'com.example.bundle_id'
 });
 
 // Remove channels
 await pubnub.push.removeChannels({
   channels: ['chat.room456'],
   device: deviceToken,
-  pushGateway: 'apns'
+  pushGateway: 'apns2',
+  environment: 'production',
+  topic: 'com.example.bundle_id'
 });
 
 // Remove all channels (unregister)
 await pubnub.push.deleteDevice({
   device: deviceToken,
-  pushGateway: 'apns'
+  pushGateway: 'apns2',
+  environment: 'production',
+  topic: 'com.example.bundle_id'
 });
 ```
 
@@ -314,6 +336,7 @@ Functions can intercept messages before delivery to validate, enrich, or block:
 ```javascript
 // Function: chat-message-validator
 // Trigger: Before Publish or Fire on chat.*
+const kvstore = require('kvstore');
 
 export default (request) => {
   const message = request.message;
@@ -371,6 +394,7 @@ Functions can perform side effects after messages are delivered:
 ```javascript
 // Function: notification-sender
 // Trigger: After Publish or Fire on mention.*
+const pubnub = require('pubnub');
 
 export default async (request) => {
   const { message, channel, publisher, timetoken } = request;

@@ -52,6 +52,11 @@ Every message published to PubNub **MUST** include four required fields. These f
 - Analytics can group by type
 - Enables versioned message handlers
 
+**Related SDK field (optional): `customMessageType`**
+- `customMessageType` is an optional publish parameter at the SDK level.
+- Use it for transport-level categorization (for example: `text`, `action`, `poll`).
+- Keep your application event semantics in the message `type` field; use `customMessageType` only as an additional label.
+
 #### 2. schemaVersion (Required)
 
 **Purpose**: Backward compatibility and schema evolution
