@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PubNub Publish Module - Slide Deck</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="theme" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+  <style>
+    :root {
+      --pubnub-red: #e8424b;
+      --pubnub-gray: #9ca3af;
+      --pubnub-bg: #0f1116;
+    }
+
+    .reveal {
+      font-size: 32px;
+    }
+
+    .reveal h1,
+    .reveal h2,
+    .reveal h3 {
+      text-transform: none;
+      color: #ffffff;
+      letter-spacing: 0;
+    }
+
+    .reveal h1 strong,
+    .reveal h2 strong,
+    .reveal h3 strong {
+      color: var(--pubnub-red);
+    }
+
+    .reveal .slides section {
+      text-align: left;
+    }
+
+    .reveal .slides section.centered {
+      text-align: center;
+    }
+
+    .reveal ul li,
+    .reveal ol li {
+      margin: 0.3em 0;
+    }
+
+    .reveal table {
+      font-size: 0.62em;
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .reveal table th,
+    .reveal table td {
+      border: 1px solid #374151;
+      padding: 0.4em 0.5em;
+    }
+
+    .reveal table th {
+      color: #fff;
+      background: #1f2937;
+    }
+
+    .reveal pre {
+      width: 100%;
+      box-shadow: none;
+      border: 1px solid #374151;
+      border-radius: 8px;
+    }
+
+    .reveal pre code {
+      max-height: 460px;
+      font-size: 0.58em;
+      line-height: 1.35;
+      padding: 1em;
+    }
+
+    .accent {
+      color: var(--pubnub-red);
+    }
+
+    .muted {
+      color: var(--pubnub-gray);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2em 0.5em;
+      margin-right: 0.3em;
+      border-radius: 999px;
+      font-size: 0.5em;
+      border: 1px solid #4b5563;
+      color: #e5e7eb;
+    }
+
+    .badge.standard {
+      border-color: #2563eb;
+      color: #93c5fd;
+    }
+
+    .badge.advanced {
+      border-color: var(--pubnub-red);
+      color: #fda4af;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 14px;
+      left: 18px;
+      z-index: 30;
+      font-size: 14px;
+      color: #9ca3af;
+      font-family: Arial, sans-serif;
+      letter-spacing: 0.02em;
+    }
+
+    .cover-sub {
+      font-size: 0.7em;
+      color: #d1d5db;
+    }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+      <section class="centered" data-footer="Publish Module">
+        <h1><strong>PubNub Publish Module</strong></h1>
+        <p>Architecture, message design, scale, and integrations</p>
+        <p class="cover-sub">Source: <code>training/publish</code></p>
+        <p>
+          <span class="badge standard">Standard Track</span>
+          <span class="badge advanced">Advanced Track</span>
+        </p>
+      </section>
+
+      <section data-footer="Agenda">
+        <h2>Agenda</h2>
+        <ol>
+          <li>Module overview and learning objectives</li>
+          <li>Section 1: Publish fundamentals</li>
+          <li>Section 2: Message design and channel strategy</li>
+          <li>Section 3: Advanced publish optimization</li>
+          <li>Section 4: Integrations with platform services</li>
+          <li>Section 5: Labs, implementation checklist, key takeaways</li>
+        </ol>
+      </section>
+
+      <section data-footer="Module Overview">
+        <section>
+          <h2>Module Structure</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Document</th>
+                <th>Track</th>
+                <th>Focus</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>01 Publish Fundamentals</td>
+                <td>Standard</td>
+                <td>API mechanics, limits, Store vs Fire</td>
+                <td>45 min</td>
+              </tr>
+              <tr>
+                <td>02 Message Design</td>
+                <td>Standard</td>
+                <td>Schema, event contracts, channel naming</td>
+                <td>45 min</td>
+              </tr>
+              <tr>
+                <td>03 Advanced Publish</td>
+                <td>Advanced</td>
+                <td>Rate limits, meta, signals, encryption</td>
+                <td>60 min</td>
+              </tr>
+              <tr>
+                <td>04 Publish Integrations</td>
+                <td>Advanced</td>
+                <td>History, Push, Functions, Events and Actions</td>
+                <td>60 min</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+        <section>
+          <h2>Learning Objectives</h2>
+          <div class="two-col">
+            <div>
+              <h3><span class="badge standard">Standard</span></h3>
+              <ul>
+                <li>Explain Publish message flow end to end</li>
+                <li>Construct valid message contracts</li>
+                <li>Handle 403, 413, and 429 failures safely</li>
+                <li>Choose Store vs Fire for each use case</li>
+                <li>Apply payload and channel naming guardrails</li>
+              </ul>
+            </div>
+            <div>
+              <h3><span class="badge advanced">Advanced</span></h3>
+              <ul>
+                <li>Optimize throughput with batching and queues</li>
+                <li>Use <code>meta</code> and subscriber filtering</li>
+                <li>Apply encryption and understand tradeoffs</li>
+                <li>Integrate with History, Push, Functions</li>
+                <li>Design authoritative client/server publish flows</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section data-footer="Section 1 - Fundamentals">
+        <section>
+          <h2><strong>Section 1:</strong> Publish Fundamentals</h2>
+          <ul>
+            <li>Real-time fanout to subscribers on a channel</li>
+            <li>Per-publisher ordering guarantees</li>
+            <li>Store behavior and retrieval through history APIs</li>
+            <li>Error and retry patterns for production reliability</li>
+          </ul>
+        </section>
+        <section>
+          <h3>What Publish Is (and Is Not)</h3>
+          <div class="two-col">
+            <div>
+              <h4 class="accent">Use Publish for</h4>
+              <ul>
+                <li>Chat, alerts, notifications</li>
+                <li>Multiplayer and collaboration updates</li>
+                <li>IoT and control commands</li>
+              </ul>
+            </div>
+            <div>
+              <h4 class="accent">Do not use Publish for</h4>
+              <ul>
+                <li>Large file transfer (use Files)</li>
+                <li>Long-running request/response workflows</li>
+                <li>Primary database persistence</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        <section>
+          <h3>SDK Publish Example</h3>
+          <pre><code class="language-javascript">const result = await pubnub.publish({
+  channel: "chat.room123",
+  message: {
+    type: "chat.message",
+    schemaVersion: "1.0",
+    eventId: "msg_abc123",
+    ts: Date.now(),
+    payload: { text: "Hello World!", userId: "user456" }
+  }
+});
+
+console.log("timetoken:", result.timetoken);</code></pre>
+          <p class="muted">Recommended path for most app code.</p>
+        </section>
+        <section>
+          <h3>REST Publish Anatomy</h3>
+          <pre><code class="language-text">https://ps.pndsn.com/publish/{pub_key}/{sub_key}/{signature}/{channel}/{callback}/{message}
+
+Required query params:
+- uuid
+- auth (if Access Manager enabled)</code></pre>
+          <ul>
+            <li>Use <code>signature=0</code> and <code>callback=0</code> for typical JSON publishes</li>
+            <li>URL-encode JSON payloads for GET</li>
+            <li>Use POST for larger messages to avoid URI limits</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Store vs Fire Decision</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Use Case</th>
+                <th>Mode</th>
+                <th>Why</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Chat message</td><td>Store</td><td>Replay and catch-up required</td></tr>
+              <tr><td>Vote submission</td><td>Store</td><td>Auditability and correctness</td></tr>
+              <tr><td>Typing indicator</td><td>Fire / no-store</td><td>Ephemeral signal only</td></tr>
+              <tr><td>Analytics ingest</td><td>Fire</td><td>No subscriber fanout needed</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section>
+          <h3>Limits and Response Model</h3>
+          <ul>
+            <li><strong>Max payload:</strong> 32 KiB hard limit</li>
+            <li><strong>Recommended:</strong> under 25-30 KiB</li>
+            <li><strong>Optimal:</strong> under 2-5 KiB for latency and throughput</li>
+            <li><strong>Success response:</strong> <code>[1, "Sent", "timetoken"]</code></li>
+          </ul>
+          <pre><code class="language-json">[1, "Sent", "17069876543210000"]</code></pre>
+        </section>
+        <section>
+          <h3>HTTP Status Handling</h3>
+          <table>
+            <thead>
+              <tr><th>Code</th><th>Meaning</th><th>Primary Action</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>400</td><td>Bad request</td><td>Validate format and channel</td></tr>
+              <tr><td>403</td><td>Forbidden</td><td>Refresh Access Manager token</td></tr>
+              <tr><td>413</td><td>Payload too large</td><td>Shrink payload or use Files</td></tr>
+              <tr><td>429</td><td>Rate limited</td><td>Exponential backoff + jitter</td></tr>
+              <tr><td>500/503</td><td>Server/transient</td><td>Retry with bounded backoff</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section>
+          <h3>Robust Retry Pattern</h3>
+          <pre><code class="language-javascript">async function publishWithRetry(channel, message, maxRetries = 3) {
+  for (let attempt = 1; attempt &lt;= maxRetries; attempt++) {
+    try {
+      return await pubnub.publish({ channel, message });
+    } catch (error) {
+      const code = error.status?.statusCode;
+      if (code === 403) await refreshToken();
+      else if (code === 413) throw new Error("payload too large");
+      else if (code === 429 || code &gt;= 500) {
+        const backoff = Math.min(1000 * 2 ** attempt, 30000);
+        // await delay(backoff + jitter())
+      } else throw error;
+    }
+  }
+  throw new Error("publish exhausted retries");
+}</code></pre>
+        </section>
+        <section>
+          <h3>Publish Flow</h3>
+          <pre class="mermaid">sequenceDiagram
+    participant Publisher
+    participant AccessManager
+    participant PubNubEdge
+    participant Subscribers
+
+    Publisher->>AccessManager: publish(channel, message)
+    AccessManager->>AccessManager: Validate token
+    alt token_valid
+      AccessManager->>PubNubEdge: Forward publish
+      PubNubEdge->>Subscribers: Real-time fanout
+      PubNubEdge-->>Publisher: 200 + timetoken
+    else token_invalid
+      AccessManager-->>Publisher: 403 Forbidden
+    end</pre>
+        </section>
+      </section>
+
+      <section data-footer="Section 2 - Message Design">
+        <section>
+          <h2><strong>Section 2:</strong> Message Design</h2>
+          <p>Design contracts that support routing, versioning, dedupe, and scale.</p>
+        </section>
+        <section>
+          <h3>Four Required Message Fields</h3>
+          <pre><code class="language-json">{
+  "type": "domain.action",
+  "schemaVersion": "1.0",
+  "eventId": "evt_unique_identifier",
+  "ts": 1706889600000,
+  "payload": { "applicationData": "..." }
+}</code></pre>
+          <ul>
+            <li><code>type</code>: routing and Function dispatch</li>
+            <li><code>schemaVersion</code>: compatibility contract</li>
+            <li><code>eventId</code>: idempotency and dedupe</li>
+            <li><code>ts</code>: client clock for tracing and latency</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Payload Guardrails</h3>
+          <ul>
+            <li>Keep payloads flat (1-2 levels)</li>
+            <li>Use consistent camelCase field names</li>
+            <li>Publish minimal required data only</li>
+            <li>Never include secrets or raw credentials</li>
+            <li>Fetch contextual metadata from App Context or backend</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Schema Evolution Strategy</h3>
+          <table>
+            <thead>
+              <tr><th>Change</th><th>Version</th><th>Impact</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Add optional field</td><td>Minor (1.0 -> 1.1)</td><td>Backward-compatible</td></tr>
+              <tr><td>Rename/remove field</td><td>Major (1.x -> 2.0)</td><td>Consumer updates required</td></tr>
+              <tr><td>Type change</td><td>Major</td><td>Breaking contract</td></tr>
+            </tbody>
+          </table>
+          <p class="muted">Deploy multi-version consumers before switching publishers.</p>
+        </section>
+        <section>
+          <h3>Channel Naming Convention</h3>
+          <pre><code class="language-text">Pattern: [channelType].[channelId]
+
+Examples:
+vote-submit.session123
+vote-results.session123
+chat.room456
+inbox.user789</code></pre>
+          <ul>
+            <li>Keep depth at 2 levels for Function wildcard binding</li>
+            <li>Use ASCII-safe characters</li>
+            <li>Encode compound identifiers in the second segment</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Access Manager Write Permissions</h3>
+          <pre><code class="language-javascript">const token = await pubnub.grantToken({
+  ttl: 60,
+  authorized_uuid: userId,
+  resources: {
+    channels: {
+      [`vote-submit.${sessionId}`]: { read: false, write: true },
+      [`vote-results.${sessionId}`]: { read: true, write: false }
+    }
+  }
+});</code></pre>
+          <ul>
+            <li>Participants can submit but cannot forge result messages</li>
+            <li>Server publishes authoritative outcomes</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Message Design Checklist</h3>
+          <ul>
+            <li>Required fields present and valid</li>
+            <li>Schema version documented and tested</li>
+            <li>Payload size and sensitivity reviewed</li>
+            <li>Channel follows 2-level naming strategy</li>
+            <li>Access Manager grants least-privilege write access</li>
+          </ul>
+        </section>
+      </section>
+
+      <section data-footer="Section 3 - Advanced Publish">
+        <section>
+          <h2><strong>Section 3:</strong> Advanced Publish</h2>
+          <p>Scale and reliability patterns for high-throughput workloads.</p>
+        </section>
+        <section>
+          <h3>Rate Limits and Throttling</h3>
+          <ul>
+            <li>429 indicates publish rate exceeded for the current plan/keyset</li>
+            <li>Apply bounded exponential backoff with jitter</li>
+            <li>Use queues to smooth spikes and control producer pressure</li>
+            <li>Track throttle metrics and publish rate over time</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Queue + Backoff Example</h3>
+          <pre><code class="language-javascript">class PublishQueue {
+  constructor(pubnub, mps = 100) {
+    this.pubnub = pubnub;
+    this.queue = [];
+    this.interval = 1000 / mps;
+  }
+  enqueue(channel, message) { this.queue.push({ channel, message }); }
+  async process() {
+    while (this.queue.length) {
+      const { channel, message } = this.queue.shift();
+      await pubnub.publish({ channel, message });
+      // await delay(this.interval)
+    }
+  }
+}</code></pre>
+        </section>
+        <section>
+          <h3>Metadata Filtering with <code>meta</code></h3>
+          <pre><code class="language-javascript">await pubnub.publish({
+  channel: "events.room123",
+  message: { type: "event.bid", eventId: "bid_123", ts: Date.now(), payload: { amount: 500 } },
+  meta: { priority: "high", region: "us-west" }
+});
+
+pubnub.subscribe({
+  channels: ["events.room123"],
+  filterExpression: "meta.priority == 'high' &amp;&amp; meta.region == 'us-west'"
+});</code></pre>
+          <p class="muted"><code>meta</code> is not persisted and remains unencrypted.</p>
+        </section>
+        <section>
+          <h3>Per-Message TTL</h3>
+          <ul>
+            <li>TTL is minutes and applies only when stored in history</li>
+            <li>Use short TTL for temporary alerts, longer for chat/audit</li>
+            <li><code>ttl: 0</code> means use keyset default retention</li>
+          </ul>
+          <pre><code class="language-javascript">await pubnub.publish({
+  channel: "chat.room123",
+  message: chatMessage,
+  storeInHistory: true,
+  ttl: 1440
+});</code></pre>
+        </section>
+        <section>
+          <h3>Signals vs Messages</h3>
+          <table>
+            <thead>
+              <tr><th>Feature</th><th>Message</th><th>Signal</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Max size</td><td>32 KiB</td><td>64 bytes</td></tr>
+              <tr><td>Persistence</td><td>Optional</td><td>Never</td></tr>
+              <tr><td>Push support</td><td>Yes</td><td>No</td></tr>
+              <tr><td>Typical use</td><td>Business events</td><td>Typing/cursor/read indicators</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section>
+          <h3>Size Decision Tree</h3>
+          <pre class="mermaid">flowchart TD
+    needPublish[NeedToPublishData]
+    needsPersist{NeedsPersistence}
+    dataSize{DataSize}
+    usePublishStore[UsePublishStoreTrue]
+    useSignal[UseSignal]
+    usePublishNoStore[UsePublishStoreFalse]
+    useFiles[UseFilesService]
+
+    needPublish --> needsPersist
+    needsPersist -->|Yes| dataSize
+    needsPersist -->|No| dataSize
+    dataSize -->|Under64B_NoPersist| useSignal
+    dataSize -->|Over64B_NoPersist| usePublishNoStore
+    dataSize -->|Under30KB_Persist| usePublishStore
+    dataSize -->|Over30KB| useFiles</pre>
+        </section>
+        <section>
+          <h3>Encryption with Cipher Key</h3>
+          <pre><code class="language-javascript">const securePubNub = new PubNub({
+  publishKey,
+  subscribeKey,
+  userId: "user123",
+  cipherKey: "secure-random-32-char-key"
+});</code></pre>
+          <ul>
+            <li>AES-256-CBC payload encryption</li>
+            <li>Base64 overhead increases payload size by about 33%</li>
+            <li>Effective encrypted payload target is about 24 KiB</li>
+            <li>Functions cannot read encrypted message payloads</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Replication and Fire Behavior</h3>
+          <div class="two-col">
+            <div>
+              <h4>Store/Publish</h4>
+              <ul>
+                <li>Replicates globally across PoPs</li>
+                <li>Delivers to subscribers worldwide</li>
+                <li>Can store in history</li>
+              </ul>
+            </div>
+            <div>
+              <h4>Fire (<code>norep: true</code>)</h4>
+              <ul>
+                <li>Nearest PoP only</li>
+                <li>No regular subscriber delivery</li>
+                <li>Functions and Illuminate only</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        <section>
+          <h3>Optimization Checklist</h3>
+          <ul>
+            <li>Keep payload minimal and structured</li>
+            <li>Batch and parallelize across channels</li>
+            <li>Serialize per-channel where ordering matters</li>
+            <li>Use Fire for backend-only analytics pipelines</li>
+            <li>Shard hot channels to distribute fanout load</li>
+            <li>Instrument p50/p95/p99 publish latency</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Troubleshooting Matrix</h3>
+          <table>
+            <thead>
+              <tr><th>Symptom</th><th>Likely Cause</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>403</td><td>Token expired or insufficient grants</td><td>Refresh token and verify write grant</td></tr>
+              <tr><td>413</td><td>Payload too large</td><td>Trim payload, externalize large blobs</td></tr>
+              <tr><td>429</td><td>Throughput spikes</td><td>Backoff, queue, and batch</td></tr>
+              <tr><td>Duplicates</td><td>Retry without dedupe</td><td>Use eventId + idempotent consumer</td></tr>
+              <tr><td>Out of order</td><td>Network/timing variance</td><td>Order by timetoken and ts rules</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+
+      <section data-footer="Section 4 - Integrations">
+        <section>
+          <h2><strong>Section 4:</strong> Publish Integrations</h2>
+          <p>Combining publish with persistence, push, Functions, routing, and security.</p>
+        </section>
+        <section>
+          <h3>Publish + Message Persistence</h3>
+          <pre><code class="language-javascript">// Stored message
+await pubnub.publish({
+  channel: "chat.room123",
+  message: chatMessage,
+  storeInHistory: true,
+  ttl: 1440
+});
+
+// Ephemeral message
+await pubnub.publish({
+  channel: "typing.room123",
+  message: typingMessage,
+  storeInHistory: false
+});</code></pre>
+          <p>Typical join flow: fetch recent history, then subscribe for live updates.</p>
+        </section>
+        <section>
+          <h3>History on Join Pattern</h3>
+          <pre><code class="language-javascript">const history = await pubnub.fetchMessages({
+  channels: ["chat.room123"],
+  count: 50
+});
+
+displayMessages(history.channels["chat.room123"]);
+pubnub.subscribe({ channels: ["chat.room123"] });</code></pre>
+          <p class="muted">Use timetoken ranges for replay windows and audits.</p>
+        </section>
+        <section>
+          <h3>Publish + Mobile Push</h3>
+          <ul>
+            <li>Embed <code>pn_apns</code> and <code>pn_fcm</code> in the message envelope</li>
+            <li>Recommended payload sizing: APNs under 1.5 KB, FCM under 3 KB</li>
+            <li>Register devices to channels before expecting delivery</li>
+            <li>Include deep-link identifiers in push payload data fields</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Publish + Functions</h3>
+          <div class="two-col">
+            <div>
+              <h4>Before Publish</h4>
+              <ul>
+                <li>Validate required contract fields</li>
+                <li>Moderate content and apply rate controls</li>
+                <li>Deduplicate by eventId</li>
+                <li>Enrich with server-generated metadata</li>
+              </ul>
+            </div>
+            <div>
+              <h4>After Publish</h4>
+              <ul>
+                <li>Trigger side effects</li>
+                <li>Webhook calls and downstream notifications</li>
+                <li>Analytics and observability events</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        <section>
+          <h3>Events and Actions Routing</h3>
+          <pre class="mermaid">flowchart LR
+    publisher[Publisher] --> pubnub[PubNub]
+    pubnub --> subscribers[Subscribers]
+    pubnub --> eaa[EventsAndActions]
+    eaa --> filter{JSONPathFilter}
+    filter -->|match| webhook[WebhookOrAWS]
+    filter -->|skip| noaction[NoAction]</pre>
+          <ul>
+            <li>Channel patterns + JSONPath filters define routing scope</li>
+            <li>No Function code required for common integration pipelines</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Access Manager Patterns</h3>
+          <table>
+            <thead>
+              <tr><th>Pattern</th><th>Client Publish</th><th>Server Publish</th><th>Use Case</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Client-only</td><td>Yes</td><td>Optional</td><td>Chat and simple user events</td></tr>
+              <tr><td>Server-only</td><td>No</td><td>Yes</td><td>Authoritative control streams</td></tr>
+              <tr><td>Hybrid</td><td>Submit only</td><td>Results only</td><td>Voting, payments, game authority</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section>
+          <h3>End-to-End Integration Flow</h3>
+          <pre class="mermaid">flowchart TB
+    publisher[PublisherWithToken] --> access[AccessManager]
+    access --> beforeFn[BeforePublishFunction]
+    beforeFn -->|ok| channel[Channel]
+    beforeFn -->|abort| rejected[Rejected]
+    channel --> subs[Subscribers]
+    channel --> history[History]
+    channel --> push[MobilePush]
+    channel --> afterFn[AfterPublishFunction]
+    channel --> eaa[EventsAndActions]</pre>
+        </section>
+      </section>
+
+      <section data-footer="Section 5 - Labs and Close">
+        <section>
+          <h2><strong>Section 5:</strong> Labs and Practice</h2>
+          <table>
+            <thead>
+              <tr><th>Lab</th><th>Focus</th><th>Time</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Lab 1: Basic Publish</td><td>Error handling for 403 and 429</td><td>30-45 min</td></tr>
+              <tr><td>Lab 2: Message Patterns</td><td>Schema design, versioning, channels</td><td>45-60 min</td></tr>
+              <tr><td>Lab 3: Publish at Scale</td><td>Batching, queueing, sharding, metrics</td><td>60-75 min</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section>
+          <h3>Lab 1 Outcomes</h3>
+          <ul>
+            <li>Publish valid messages and capture timetokens</li>
+            <li>Refresh tokens on 403 and retry safely</li>
+            <li>Handle 429 with exponential backoff and jitter</li>
+            <li>Build one robust publish utility with bounded retries</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Lab 2 Outcomes</h3>
+          <ul>
+            <li>Create messages with four required fields</li>
+            <li>Implement v1.0, v1.1, and v2.0 schema handling</li>
+            <li>Apply 2-level channel naming pattern</li>
+            <li>Design conceptual Before Publish validation logic</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Lab 3 Outcomes</h3>
+          <ul>
+            <li>Measure baseline throughput and latency</li>
+            <li>Compare batching strategies</li>
+            <li>Build a queue with controlled message rate</li>
+            <li>Compare Fire vs Store performance profiles</li>
+            <li>Distribute load with channel sharding</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Quick Reference</h3>
+          <table>
+            <thead>
+              <tr><th>Constraint</th><th>Value</th><th>Guidance</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Message max size</td><td>32 KiB</td><td>Target under 25-30 KiB</td></tr>
+              <tr><td>Signal max size</td><td>64 bytes</td><td>Ephemeral indicators only</td></tr>
+              <tr><td>Channel naming</td><td>[type].[id]</td><td>2-level depth for Function wildcard support</td></tr>
+              <tr><td>Required fields</td><td>type, schemaVersion, eventId, ts</td><td>Use on every message</td></tr>
+              <tr><td>Critical errors</td><td>403, 413, 429</td><td>Refresh, resize, or backoff</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section class="centered">
+          <h2><strong>Key Takeaways</strong></h2>
+          <p>Design for correctness first, then optimize for scale.</p>
+          <ul style="display:inline-block;text-align:left;">
+            <li>Use idempotent event contracts with stable <code>eventId</code></li>
+            <li>Keep channel topology simple and authorization explicit</li>
+            <li>Integrate persistence, push, and Functions intentionally</li>
+            <li>Measure throughput and tune with queueing and sharding</li>
+          </ul>
+        </section>
+        <section class="centered">
+          <h2>Next Steps</h2>
+          <p>Continue with Subscribe module and Access Manager deep dive.</p>
+          <p class="muted">Hands-on practice: run all three publish labs in order.</p>
+        </section>
+      </section>
+    </div>
+  </div>
+
+  <div class="footer" id="deckFooter">Publish Module</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    // Convert mermaid code blocks into renderable mermaid containers.
+    document.querySelectorAll("pre.mermaid").forEach((preEl) => {
+      const div = document.createElement("div");
+      div.className = "mermaid";
+      div.textContent = preEl.textContent;
+      preEl.replaceWith(div);
+    });
+
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "dark"
+    });
+
+    const deck = new Reveal({
+      hash: true,
+      slideNumber: "c/t",
+      transition: "slide",
+      width: 1400,
+      height: 900,
+      margin: 0.06,
+      plugins: [RevealHighlight, RevealNotes]
+    });
+
+    deck.initialize().then(() => {
+      mermaid.run({
+        querySelector: ".mermaid"
+      });
+    });
+
+    const footerEl = document.getElementById("deckFooter");
+    function updateFooter() {
+      const current = deck.getCurrentSlide();
+      const label = current && current.getAttribute("data-footer");
+      footerEl.textContent = label || "Publish Module";
+    }
+
+    deck.on("ready", updateFooter);
+    deck.on("slidechanged", updateFooter);
+  </script>
+</body>
+</html>

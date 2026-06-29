@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PubNub channel group subscribe</title>
+  <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.10.2.9.min.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 52rem; margin: 1.5rem auto; padding: 0 1rem; }
+    pre#log {
+      background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 8px;
+      min-height: 12rem; overflow: auto; font-size: 0.875rem; line-height: 1.45;
+    }
+    .hint { color: #555; font-size: 0.9rem; margin-top: 0.5rem; }
+    code { background: #f0f0f0; padding: 0.1em 0.35em; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Channel group subscribe</h1>
+  <p>
+    Group: <code id="group-name"></code> · Subscribe key: <code id="subkey"></code>
+  </p>
+  <p class="hint">
+    Subscribes to one group, adds the first channel, waits 5s, then adds a second channel. No dots in channel names. Stream Controller must be enabled on the keyset.
+    Edit <code>CHANNEL_GROUP</code>, <code>CHANNEL_FIRST</code>, and <code>CHANNEL_SECOND</code> in the script if needed.
+  </p>
+  <pre id="log"></pre>
+
+  <script>
+    const SUBSCRIBE_KEY = 'sub-c-2a0b2844-c8fa-11e9-8cfd-2648cfa01a7d';
+    const CHANNEL_GROUP = 'my_group';
+    const CHANNEL_FIRST = 'sandbox_my_group_ch1';
+    const CHANNEL_SECOND = 'sandbox_my_group_ch2';
+
+    document.getElementById('group-name').textContent = CHANNEL_GROUP;
+    document.getElementById('subkey').textContent = SUBSCRIBE_KEY;
+
+    const logEl = document.getElementById('log');
+    function log(line) {
+      logEl.textContent += line + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    const pubnub = new PubNub({
+      subscribeKey: SUBSCRIBE_KEY,
+      userId: 'sandbox-demo-' + Math.random().toString(36).slice(2, 14),
+    });
+
+    pubnub.addListener({
+      status: function (event) {
+        if (event.category === 'PNConnectedCategory') {
+          log('[status] connected');
+        } else if (event.category === 'PNNetworkIssuesCategory' || event.category === 'PNAccessDeniedCategory') {
+          log('[status] ' + event.category);
+        }
+      },
+    });
+
+    const groupSet = pubnub.subscriptionSet({
+      channelGroups: [CHANNEL_GROUP],
+    });
+    groupSet.onMessage = function (m) {
+      log(
+        '[message] channel=' +
+          m.channel +
+          ' subscription=' +
+          (m.subscription || '') +
+          ' payload=' +
+          JSON.stringify(m.message)
+      );
+    };
+
+    function sleep(ms) {
+      return new Promise(function (resolve) {
+        setTimeout(resolve, ms);
+      });
+    }
+
+    (async function start() {
+      groupSet.subscribe();
+      log('[init] subscriptionSet: channelGroups [' + CHANNEL_GROUP + ']');
+
+      try {
+        await pubnub.channelGroups.addChannels({
+          channels: [CHANNEL_FIRST],
+          channelGroup: CHANNEL_GROUP,
+        });
+        log('[init] addChannels: ' + CHANNEL_FIRST + ' → ' + CHANNEL_GROUP);
+      } catch (err) {
+        log('[init] addChannels (first) error: ' + err);
+      }
+
+      log('[init] waiting 5s before second addChannels…');
+      await sleep(5000);
+
+      try {
+        await pubnub.channelGroups.addChannels({
+          channels: [CHANNEL_SECOND],
+          channelGroup: CHANNEL_GROUP,
+        });
+        log('[init] addChannels: ' + CHANNEL_SECOND + ' → ' + CHANNEL_GROUP);
+      } catch (err) {
+        log('[init] addChannels (second) error: ' + err);
+      }
+    })();
+  </script>
+</body>
+</html>

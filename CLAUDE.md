@@ -7,7 +7,7 @@ Use Claude to plan and draft best-practice guidance for building real-time appli
 - **Pub/Sub**
 - **Presence**
 - **Message Persistence / History / Fetch**
-- **Access Manager (PAM)**
+- **Access Manager**
 - **PubNub MCP Servers**
 - Other PubNub features as required
 
@@ -38,7 +38,7 @@ Claude should produce, as applicable per use case:
 - **Data model** (App Context schemas, relationships, constraints)
 - **Event model** (events, commands, idempotency strategy)
 - **Functions design** (triggers, retries, side effects, observability)
-- **Security model** (PAM roles, token design, least privilege)
+- **Security model** (Access Manager roles, token design, least privilege)
 - **Correctness guarantees** (ordering, dedupe, race conditions, replay handling)
 - **Performance analysis** (hot channels, sharding, batching, rate limits)
 - **Resilience** (failover behavior, retries, backpressure)
@@ -63,7 +63,7 @@ Every use case MUST follow this structure:
 5. **App Context Model**
 6. **Event / Message Contracts**
 7. **Functions / Server Logic**
-8. **Security (PAM / tokens)**
+8. **Security (Access Manager / tokens)**
 9. **Failure Modes & Edge Cases**
 10. **Scaling Notes**
 11. **Observability**
@@ -78,7 +78,7 @@ Every use case MUST follow this structure:
 Claude MUST:
 - Prefer **idempotent** designs and explain how idempotency is achieved.
 - Explicitly address **deduplication** and **replay** for every use case.
-- Include **authorization (PAM token strategy)** in every design.
+- Include **authorization (Access Manager token strategy)** in every design.
 - Avoid trusting clients with authoritative decisions.
 - Clearly explain **when to use App Context vs History vs external storage**.
 - Define and justify **channel naming and partitioning**.
@@ -117,7 +117,7 @@ Claude MUST:
 - Explicitly define retention per use case.
 - Never assume infinite retention.
 
-### Access Manager (PAM)
+### Access Manager
 - Prefer **token-based grants**.
 - Enforce least privilege (channels, TTLs, capabilities).
 - Clearly separate roles (host, moderator, participant, viewer).
@@ -172,6 +172,24 @@ All example messages must include:
 - `eventId` or `requestId`
 - `ts` (timestamp)
 - Minimal, well-scoped payload
+
+---
+
+## Terminology Rules
+
+**CRITICAL: These terminology rules are non-negotiable and apply to ALL content.**
+
+### Access Manager (NEVER "PAM")
+- **ALWAYS use:** "Access Manager"
+- **NEVER use:** "PAM", "PAM v3", "PAMv3", or any acronym variant
+- **Rationale:** We don't use acronyms for other PubNub services/features. Access Manager should be treated with the same respect as all other features with its full, proper name.
+- **Examples:**
+  - ✅ "Access Manager token", "Access Manager grants", "Enable Access Manager"
+  - ❌ "PAM token", "PAM grants", "Enable PAM"
+
+### Other PubNub Features
+- Use full feature names consistently: "App Context", "Functions", "Presence", "Message Persistence"
+- Avoid unnecessary abbreviations or acronyms unless they are official product names
 
 ---
 
